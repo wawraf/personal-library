@@ -35,7 +35,7 @@ module.exports = function (app) {
     
     .post(function (req, res){
       var title = req.body.title;
-      if (title === '') return res.json('missing title');
+      if (title === '') return res.type('text').send('missing title');
       let book = {title: title, comments: []}
       MongoClient.connect(MONGODB_CONNECTION_STRING, function(err, db) {
         db.collection('books').insertOne(book, (err, docs) => {
@@ -67,13 +67,13 @@ module.exports = function (app) {
       try {
         ObjectId(bookid)
       } catch(err) {
-        return res.json('no book exists');
+        return res.type('text').send('no book exists');
       }
     
       MongoClient.connect(MONGODB_CONNECTION_STRING, function(err, db) {
         db.collection('books').findOne({_id: ObjectId(bookid)}, (err, docs) => {
           if (err) throw err;
-          res.json(docs !== null ? docs : 'no book exists')
+          docs !== null ? res.json(docs) : res.type('text').send('no book exists')
           db.close()
         })
       });
@@ -87,14 +87,13 @@ module.exports = function (app) {
       try {
         ObjectId(bookid)
       } catch(err) {
-        return res.json('invalid id');
+        return res.json('no book exists');
       }
     
       MongoClient.connect(MONGODB_CONNECTION_STRING, function(err, db) {
         db.collection('books').findOneAndUpdate({_id: ObjectId(bookid)}, {$push: {comments: comment}}, {returnOriginal: false}, (err, docs) => {
           if (err) throw err;
-          console.log(docs.value)
-          res.json(docs.value)
+          docs.lastErrorObject.updatedExisting === true ? res.json(docs.value) : res.type('text').send('no book exists')
           db.close()
         })
       });
